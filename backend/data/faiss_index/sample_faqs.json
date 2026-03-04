@@ -1,0 +1,349 @@
+{
+  "metadata": {
+    "total_faqs": 31,
+    "version": "1.0",
+    "last_updated": "2026-02-02",
+    "description": "Banking Support System FAQ Database"
+  },
+  "faqs": [
+    {
+      "id": 1,
+      "question": "Please update dynamic QR code format,The customer details are not being displayed there.",
+      "answer": "Plz go to Accounting Menu -> Transaction import. Then Click on Download Sample and download the sample Excel sheet and paste your bank statement as per column given in it and plz note each description should be unique. If its not unique then add date and time stamp. Once the excal format is ready. click on browse UPI statement button and upload the QR code statement file",
+      "category": "Account & Transactions",
+      "tags": [
+        "profile",
+        "account",
+        "transaction",
+        "excel"
+      ]
+    },
+    {
+      "id": 2,
+      "question": "Pls give demo for CKYC AND CERSAI reporting and also let us know the cost to activate the same.",
+      "answer": "Please refer to the CKYC Demo video - https://youtu.be/hQovXWPQO3E?si=yuVFKzcU0MmNm1w4 We will share the quotation for CKYC API Integration Cost along-with CKYC Check and Download cost. Please make sure you should have CERSAI Certification and their portal Login Credentials to use this service.",
+      "category": "Profile Management",
+      "tags": [
+        "report",
+        "kyc",
+        "youtube"
+      ],
+      "youtube_link": "https://youtu.be/hQovXWPQO3E?si=yuVFKzcU0MmNm1w4"
+    },
+    {
+      "id": 3,
+      "question": "Please enable WhatsApp service",
+      "answer": "WhatsApp Service is Chargeable API and there will be ongoing / monthly fee will be applicable. So detail quotation will be shared with you Shortly As its a Third Party Service API, we have to pay them back and on-going charges as well as monthly fee are also applicable as its for Business use and on prepaid basis. (Detailed Quotation will be shared)",
+      "category": "SMS & WhatsApp",
+      "tags": [
+        "payment",
+        "whatsapp",
+        "penalty"
+      ]
+    },
+    {
+      "id": 4,
+      "question": "In Customer app give me Transaction",
+      "answer": "All the Development and Enhancement SR will be done only on Chargeable Basis and for each and every new changes required, Development/Enhancement SR we will send Quotation and only after the payment receipt all these SR will take for the production.",
+      "category": "Account & Transactions",
+      "tags": [
+        "payment",
+        "profile",
+        "transaction",
+        "customization"
+      ]
+    },
+    {
+      "id": 5,
+      "question": "We need to change the below setting",
+      "answer": "For this setting you have to go to Master Setup -> Setting -> Creating New Config button Add the Setting: Maximum Difference Between Loan Disbursement Date And Installment Start Date. Default value is 31. This is number of days difference allowed between loan disbursement and installment start date. So you can change it to 47 or 50according to your requirements.",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "configuration"
+      ]
+    },
+    {
+      "id": 6,
+      "question": "#ForeclosureCharges# variable is working only when we add another variable that is #PartyLedgerDateRange#.",
+      "answer": "This issue is Fixed now #ForeclosureCharges# variable can be use independently.",
+      "category": "Loan Management",
+      "tags": [
+        "foreclosure",
+        "penalty",
+        "error"
+      ]
+    },
+    {
+      "id": 7,
+      "question": "Textlocal SMS service is stopped. Please raise SR for alternate SMS provider.",
+      "answer": "Your SMS account is not in TextLocal, Please chck your SMS credits availability and confirm so that we can share the SMS Credit Invoice and Add the Credits accordingly",
+      "category": "Account & Transactions",
+      "tags": [
+        "sms",
+        "account"
+      ]
+    },
+    {
+      "id": 8,
+      "question": "RSP option is not enabled in the group option in the profile creation page. Kindly enable the same",
+      "answer": "Jan-26\tAs per your request we have activated the RSP Module, but if you want to make any changes, updates or want to add any simple modifications then it will be done on chargeable basis only. Thank you. You can refer to the below YouTube links for RSP Module features and operations: https://youtu.be/9plPMU-nZsc?si=XZagL2BLVcdT94SF https://youtu.be/a-vqaoCc-k8?si=ue4HbtUz-YDMFEwT https://youtu.be/qF7RepVBTqY?si=gIQL6XCaySZN-UV3 https://youtu.be/ZXwTNcc4iPE?si=g3WFK3gncKAMfRMz",
+      "category": "Profile Management",
+      "tags": [
+        "profile",
+        "rsp",
+        "youtube"
+      ],
+      "youtube_link": "https://youtu.be/9plPMU-nZsc?si=XZagL2BLVcdT94SF"
+    },
+    {
+      "id": 9,
+      "question": "BY MISTAKKE ADDED 590 PENALITY TO ALL DUE CUSTOMERS WE HAVE TO REMOVE IT",
+      "answer": "For the customers whose loans have penalties applied, you need to first search for the loan. After that, you will see an option called Fees & Charges, from where you need to delete the penalty. For the customers whose loans have penalties applied, you need to first search for the loan. After that, you will see an option called Fees & Charges, from where you need to delete the penalty.",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "profile",
+        "penalty"
+      ]
+    },
+    {
+      "id": 10,
+      "question": "Want to know Televerification process in jainam system . and required CO -applicant & guranteer tab @ profile creation level .",
+      "answer": "For mobile verification, please search profile and click verify mobile. Co-applicant and guarantor details cannot be added at profile level. Please create co-applicant or guarantor profile as normal profiles and then map in Loan using role list.",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "profile",
+        "verification",
+        "guarantor"
+      ]
+    },
+    {
+      "id": 11,
+      "question": "In app - After customer send Less Payment request add whatsapp link to send us notification",
+      "answer": "For this you have to Purchase WhatsApp Services and need to make payments for WhatsApp integration and On-going Charges + Platform Fee. Kindly confirm.",
+      "category": "Payment & Collection",
+      "tags": [
+        "payment",
+        "whatsapp",
+        "profile",
+        "penalty"
+      ]
+    },
+    {
+      "id": 12,
+      "question": "type: validation_error, msg: Insufficient balance to process this request., code:insufficient_balance dear sir bank statment is not verify massed apeard as mention obove",
+      "answer": "As discussed, there should be some minimum balance in your bank as well as in the borrower bank to check the bank account / statement. Verification credits are available. there is no other issue found. If you feel anything is not working with Bank Account / Statement verification in future plz let us know. Thank you.",
+      "category": "Account & Transactions",
+      "tags": [
+        "account",
+        "verification",
+        "penalty",
+        "error"
+      ]
+    },
+    {
+      "id": 13,
+      "question": "account is not closing, i am not understating please clear issue sir",
+      "answer": "As discussed, whenever borrower comes to pre-close the Loan then we have to select Settlement and Pre-close option and select the Receive and Pre close button after adding the amount whichever ther are paying to close the loan. Plz refer: https://youtu.be/Ocdu0pF5Tao?si=OlLR-Vd_hIYAzyaG",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "payment",
+        "account",
+        "foreclosure",
+        "error"
+      ],
+      "youtube_link": "https://youtu.be/Ocdu0pF5Tao?si=OlLR-Vd_hIYAzyaG"
+    },
+    {
+      "id": 14,
+      "question": "Need to understand and Learn the GST Implimentation. We have obtained GST Registration, have to understand how the reports will be generated from software.",
+      "answer": "We have to add CST at the time of Loan Creation on Fees and Charges (Like: Document Charges, Processing fee etc.) How to Configure GST Based on Customer State: https://youtu.be/29lAhaAUkfI?si=URiiQ-jNd7aj8hRi GST reports will be available in Business Summary-> Account Statement and you can Filetr dates and select CGST/SGST/IGST to check the details of that specific ledger. Set GST Inclusive & Exclusive in NBFC Software: https://youtu.be/9lj3EfwbdHY?si=5nYX0j_ZNA9qe8KW",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "profile",
+        "report",
+        "gst",
+        "account"
+      ],
+      "youtube_link": "https://youtu.be/29lAhaAUkfI?si=URiiQ-jNd7aj8hRi"
+    },
+    {
+      "id": 15,
+      "question": "Can we add multiple commission slabs to one agent and can we make a hierarchy for agents ... i.e. Field Officer, Assistant Manager, Manager etc so that we can divide the commission hierarchy wise.",
+      "answer": "Commission can be given to multiple agents. You can configure agent name in role list and said the commission logic. Commission hierarchy is not supported. But it can be achieved if you configure multiple commission agents in Loan role list.",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "configuration"
+      ]
+    },
+    {
+      "id": 16,
+      "question": "We want to test rsp module for testing in our system --can you provide su the option we will create one dummy loan and then then check the RSP Module once we are confident enough we will implement in production",
+      "answer": "RSP Module added. You can refer to the below YouTube links for RSP Module features and operations: 1) https://youtu.be/9plPMU-nZsc?si=XZagL2BLVcdT94SF 2) https://youtu.be/a-vqaoCc-k8?si=ue4HbtUz-YDMFEwT 3) https://youtu.be/qF7RepVBTqY?si=gIQL6XCaySZN-UV3 4) https://youtu.be/ZXwTNcc4iPE?si=g3WFK3gncKAMfRMz",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "rsp",
+        "youtube"
+      ],
+      "youtube_link": "https://youtu.be/9plPMU-nZsc?si=XZagL2BLVcdT94SF"
+    },
+    {
+      "id": 17,
+      "question": "WANT CHANGES IN LOAN AGREEMENT ACCORDING TO OUR REQUIREMENT",
+      "answer": "As the Print Template Changes and modification will be done on Chargeable Basis, Please share the Word Format of your agreement according to the changes required, time consumption and work effort we will sgare the Quotation first and accordingly we will make changes once the payment is received. Thank you.",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "payment"
+      ]
+    },
+    {
+      "id": 18,
+      "question": "EKYC SERVICE REQUIRED",
+      "answer": "We have already shared the Quotation for the eKYC integration charges, plz make payment and confirm to enable us proceed further with the API integrations.",
+      "category": "Payment & Collection",
+      "tags": [
+        "payment",
+        "kyc",
+        "penalty"
+      ]
+    },
+    {
+      "id": 19,
+      "question": "There is a gender mismatch in the Credit Bureau Report.",
+      "answer": "Please Check At your Side at time of ledger creation; you are passing gender male. if you want confirmation, I will share the logs. Please let me know. Profile name profile Creation Date",
+      "category": "Account & Transactions",
+      "tags": [
+        "profile",
+        "report"
+      ]
+    },
+    {
+      "id": 20,
+      "question": "How to check future receivable of all cases",
+      "answer": "Future Receivable will reflect in Status Report -> Due List where you can filter Data/Loan by date Filter and get the report. For Already received amount you can check in the Collection Reports",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "report"
+      ]
+    },
+    {
+      "id": 21,
+      "question": "Customized Number feild is not visible in Confirgation tab.",
+      "answer": "Customized Number field has been shifted to the Loan Main Page Tab and its visible next to Jainam Loan Number *Example: [ Personal Loan #: 250 / #abc123 ] - Where as #abc123 is Customized Number field Loan customized number change is removed from configuration and added to main screen",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "configuration"
+      ]
+    },
+    {
+      "id": 22,
+      "question": "How to update the details of the customer duplicate key, RC. Permit insurance in excel sheet",
+      "answer": "You can get Vehicle Related details in the Menu -> Detail Report -> Vehicle Detail and press Refresh button. now you can see / Export the Vehicle details to excel Sheet",
+      "category": "Profile Management",
+      "tags": [
+        "profile",
+        "report",
+        "excel"
+      ]
+    },
+    {
+      "id": 23,
+      "question": "plz make in my company Logo",
+      "answer": "We are not making any company Logo . we can upload the company Logon in your software, if you provide the 1:1 size Logo Image. If you want us to create a New Logo Design for you then it will be on Chargeable Basis only so that we can assign a Technical Person for the same and we have to male payments accordingly. Thank you",
+      "category": "Payment & Collection",
+      "tags": [
+        "payment"
+      ]
+    },
+    {
+      "id": 24,
+      "question": "How to take the Print of Confirmation of Accounts of a Particular Ledger statement.",
+      "answer": "Under Business Summary, there is an Account Statement. From there, you need to select any one ledger and apply the date-wise filter. After that, the report will be generated. Then you need to take the printout.",
+      "category": "Account & Transactions",
+      "tags": [
+        "report",
+        "account"
+      ]
+    },
+    {
+      "id": 25,
+      "question": "HOW TO ADD GRAUNTER IN A LOAN",
+      "answer": "Search Loan => Role List tab In dropdown Select guarantor => Add File number",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "guarantor"
+      ]
+    },
+    {
+      "id": 26,
+      "question": "We need to configure a SMS configuration from the back-end for the NTT e-mandate link generation",
+      "answer": "SMS configure => Development is done Only need to configure Sms",
+      "category": "Payment & Collection",
+      "tags": [
+        "sms",
+        "configuration",
+        "enach",
+        "customization"
+      ]
+    },
+    {
+      "id": 27,
+      "question": "How can I edit pan card details and dob in current loan",
+      "answer": "PAN Card detail and DOB are related with Customer Profile not with Loan, so you can open their profile, click on the edit button there you can make changes and then save the changes",
+      "category": "Loan Management",
+      "tags": [
+        "loan",
+        "profile"
+      ]
+    },
+    {
+      "id": 28,
+      "question": "how to recover if loan is delete by mistake",
+      "answer": "go to Master Setup -> Correction -> Add deleted Loan number Click on Restore Loan button and then select the deleted date and you can restore the loan.",
+      "category": "Loan Management",
+      "tags": [
+        "loan"
+      ]
+    },
+    {
+      "id": 29,
+      "question": "how to modify accounts entries",
+      "answer": "go to Business Summary -> Account Statement and delete the wrong entry and you can create new Voucher / Journal Entry from the Accounting Menu",
+      "category": "Account & Transactions",
+      "tags": [
+        "account"
+      ]
+    },
+    {
+      "id": 30,
+      "question": "I NEED TRAINING FOR ENACH PROCESSING",
+      "answer": "As shown, After Subscription you need to send the link to borrower / you can process it for approval from the borrower for eNACH. As discussed eNach will trigger same as per Installment Tracker schedule and for same amount. Ref: https://youtu.be/oPo8UiX8MyI?si=WbxVac8RUryNYrxQ",
+      "category": "Loan Management",
+      "tags": [
+        "enach",
+        "youtube"
+      ],
+      "youtube_link": "https://youtu.be/oPo8UiX8MyI?si=WbxVac8RUryNYrxQ"
+    },
+    {
+      "id": 31,
+      "question": "How to we get the insurance expiry date of the every customer",
+      "answer": "insurance expiry date Is Available On => Detail Report => Vehicle Detail Report",
+      "category": "Profile Management",
+      "tags": [
+        "profile",
+        "report"
+      ]
+    }
+  ]
+}

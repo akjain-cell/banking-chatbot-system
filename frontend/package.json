@@ -1,0 +1,24 @@
+{
+  "name": "banking-support-chatbot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hybrid banking support chatbot frontend (React + FastAPI backend)",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext js,jsx --max-warnings=0"
+  },
+  "dependencies": {
+    "axios": "^1.13.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "eslint": "^9.14.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.12",
+    "vite": "^6.0.0"
+  }
+}

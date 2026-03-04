@@ -1,0 +1,252 @@
+v1 app.jsx
+
+/**
+ * FIXED APP.JSX - Banking Support Chatbot Frontend
+ * 
+ * Changes:
+ * 1. Displays frequent questions on page load
+ * 2. Updates suggestions after each query
+ * 3. Better UI for question chips
+ * 4. Shows category badges
+ */
+
+import { useState, useEffect } from 'react'
+import { queryBot, getFrequentQuestions } from './api'
+import './App.css'
+
+function App() {
+  // State management
+  const [query, setQuery] = useState('')
+  const [response, setResponse] = useState(null)
+  const [frequentQuestions, setFrequentQuestions] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Load frequent questions on page load
+  useEffect(() => {
+    loadFrequentQuestions()
+  }, [])
+
+  // Load frequent questions from backend
+  const loadFrequentQuestions = async () => {
+    try {
+      const data = await getFrequentQuestions(10)
+      if (data.success && data.questions) {
+        setFrequentQuestions(data.questions)
+      }
+    } catch (err) {
+      console.log('Could not load frequent questions:', err)
+    }
+  }
+
+  // Handle form submit
+  const handleQuery = async (e) => {
+    e.preventDefault()
+    
+    if (!query.trim()) return
+    
+    setLoading(true)
+    setError(null)
+    setResponse(null)
+    
+    try {
+      const result = await queryBot({
+        query: query,
+        userId: 'web-user'
+      })
+      
+      setResponse(result)
+      
+      // If successful, hide frequent questions to show only related questions
+      if (result.success) {
+        setFrequentQuestions([])
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to get response')
+      console.error('Query error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle clicking on a question chip
+  const handleQuestionClick = async (questionText) => {
+    setQuery(questionText)
+    
+    // Automatically submit
+    setLoading(true)
+    setError(null)
+    setResponse(null)
+    
+    try {
+      const result = await queryBot({
+        query: questionText,
+        userId: 'web-user'
+      })
+      
+      setResponse(result)
+      
+      if (result.success) {
+        setFrequentQuestions([])
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to get response')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Get category color
+  const getCategoryColor = (category) => {
+    const colors = {
+      'Loan Management': '#3b82f6',
+      'Account & Transactions': '#10b981',
+      'Profile Management': '#f59e0b',
+      'Payment & Collection': '#8b5cf6',
+      'SMS & WhatsApp': '#ec4899',
+      'Reports & Analytics': '#14b8a6'
+    }
+    return colors[category] || '#6b7280'
+  }
+
+  return (
+    <div className="app">
+      <div className="chatbot-container">
+        {/* Header */}
+        <div className="header">
+          <h1>🏦 Jainam Support Chatbot</h1>
+          <p>Ask anything about Jainam</p>
+        </div>
+
+        {/* Search Form */}
+        <form onSubmit={handleQuery} className="search-form">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="I NEED TRAINING FOR ENACH PROCESSING"
+            className="input-field"
+            disabled={loading}
+          />
+          <button type="submit" disabled={loading} className="ask-button">
+            {loading ? 'Asking...' : 'Ask'}
+          </button>
+        </form>
+
+        {/* Loading Spinner */}
+        {loading && (
+          <div className="loader">
+            <div className="spinner"></div>
+            <p>Finding the best answer...</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="error">
+            ❌ {error}
+          </div>
+        )}
+
+        {/* Response */}
+        {response && response.success && (
+          <div className="answer-box">
+            <div className="answer">
+              <h3>💡 Answer</h3>
+              <p className="answer-text">{response.answer}</p>
+              
+              {/* Confidence Badge */}
+              <div className={`confidence ${response.confidence_level?.toLowerCase() || 'good'}`}>
+                <span className="confidence-label">Confidence:</span>
+                <span className="confidence-value">
+                  {(response.confidence_score * 100).toFixed(0)}%
+                </span>
+                <span className="confidence-level">
+                  ({response.confidence_level || 'good'})
+                </span>
+              </div>
+
+              {/* YouTube Links */}
+              {response.youtube_links && response.youtube_links.length > 0 && (
+                <div className="youtube-links">
+                  <h4>📺 Video Tutorials:</h4>
+                  <div className="youtube-list">
+                    {response.youtube_links.map((link, idx) => (
+                      <a
+                        key={idx}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="youtube-link"
+                      >
+                        <span className="youtube-icon">▶️</span>
+                        Watch Tutorial {idx + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Related Questions */}
+            {response.related_questions && response.related_questions.length > 0 && (
+              <div className="related">
+                <h4>❓ Related FAQs:</h4>
+                <div className="question-chips">
+                  {response.related_questions.map((q, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleQuestionClick(q)}
+                      className="question-chip"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* No Answer Found */}
+        {response && !response.success && (
+          <div className="no-answer">
+            <div className="no-answer-icon">🤷‍♂️</div>
+            <h3>No Solution Found</h3>
+            <p>{response.fallback_message || "I couldn't find a confident answer to your question."}</p>
+            <p className="help-text">Try rephrasing your question or contact our support team.</p>
+          </div>
+        )}
+
+        {/* Frequent Questions - Show only when no response */}
+        {!response && frequentQuestions.length > 0 && (
+          <div className="frequent-questions">
+            <h4>💬 FAQs:</h4>
+            <div className="question-chips">
+              {frequentQuestions.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleQuestionClick(item.question)}
+                  className="question-chip"
+                  style={{ borderColor: getCategoryColor(item.category) }}
+                >
+                  <span className="chip-category" style={{ color: getCategoryColor(item.category) }}>
+                    {item.category}
+                  </span>
+                  <span className="chip-question">{item.question}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="footer">
+          <p>Abhay Kucheriya </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default App
