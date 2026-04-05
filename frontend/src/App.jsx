@@ -1,174 +1,102 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import { queryBot, getFrequentQuestions } from './api.js'
 
 function App() {
-  // State
   const [query, setQuery] = useState('')
   const [messages, setMessages] = useState([])
   const [frequentQuestions, setFrequentQuestions] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showEmpty, setShowEmpty] = useState(true)
-  
+
   const chatBodyRef = useRef(null)
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
-  // Load FAQs on mount
-  useEffect(() => {
-    loadFrequentQuestions()
-  }, [])
+  useEffect(() => { loadFrequentQuestions() }, [])
+  useEffect(() => { scrollToBottom() }, [messages])
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Load Frequent Questions
   const loadFrequentQuestions = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/frequent-questions?limit=12`)
-      const data = await response.json()
-      
-      if (data.success && data.questions) {
+      const data = await getFrequentQuestions(12)
+      if (data.success && data.questions?.length > 0) {
         setFrequentQuestions(data.questions)
       } else {
         loadHardcodedFAQs()
       }
-    } catch (error) {
-      console.error('Failed to load FAQs from API:', error)
+    } catch {
       loadHardcodedFAQs()
     }
   }
 
-  // Hardcoded FAQs fallback
   const loadHardcodedFAQs = () => {
-    const hardcodedFAQs = [
-      {
-        question: "Please update dynamic QR code format. The customer details are not being displayed there.",
-        category: "Account & Transactions"
-      },
-      {
-        question: "Pls give demo for CKYC AND CERSAI reporting and also let us know the cost to activate the same.",
-        category: "Profile Management"
-      },
-      {
-        question: "Please enable WhatsApp service",
-        category: "SMS & WhatsApp"
-      },
-      {
-        question: "In Customer app give me Transaction",
-        category: "Account & Transactions"
-      },
-      {
-        question: "We need to change the below setting",
-        category: "Loan Management"
-      },
-      {
-        question: "RSP option is not enabled in the group option in the profile creation page. Kindly enable the same",
-        category: "Profile Management"
-      },
-      {
-        question: "Want to know Televerification process in jainam system",
-        category: "Loan Management"
-      },
-      {
-        question: "How to check future receivable of all cases",
-        category: "Loan Management"
-      },
-      {
-        question: "EKYC SERVICE REQUIRED",
-        category: "Payment & Collection"
-      },
-      {
-        question: "How to take the Print of Confirmation of Accounts of a Particular Ledger statement.",
-        category: "Account & Transactions"
-      },
-      {
-        question: "HOW TO ADD GRAUNTER IN A LOAN",
-        category: "Loan Management"
-      },
-      {
-        question: "I NEED TRAINING FOR ENACH PROCESSING",
-        category: "Loan Management"
-      }
-    ]
-    setFrequentQuestions(hardcodedFAQs)
+    setFrequentQuestions([
+      { question: "Please update dynamic QR code format. The customer details are not being displayed there.", category: "Account & Transactions" },
+      { question: "Pls give demo for CKYC AND CERSAI reporting and also let us know the cost to activate the same.", category: "Profile Management" },
+      { question: "Please enable WhatsApp service", category: "SMS & WhatsApp" },
+      { question: "In Customer app give me Transaction", category: "Account & Transactions" },
+      { question: "We need to change the below setting", category: "Loan Management" },
+      { question: "RSP option is not enabled in the group option in the profile creation page. Kindly enable the same", category: "Profile Management" },
+      { question: "Want to know Televerification process in jainam system", category: "Loan Management" },
+      { question: "How to check future receivable of all cases", category: "Loan Management" },
+      { question: "EKYC SERVICE REQUIRED", category: "Payment & Collection" },
+      { question: "How to take the Print of Confirmation of Accounts of a Particular Ledger statement.", category: "Account & Transactions" },
+      { question: "HOW TO ADD GRAUNTER IN A LOAN", category: "Loan Management" },
+      { question: "I NEED TRAINING FOR ENACH PROCESSING", category: "Loan Management" }
+    ])
   }
 
-  // Handle FAQ click
   const handleQuestionClick = async (questionText) => {
     setQuery(questionText)
-    
-    // Scroll to chat area
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    
-    // Small delay then submit
     setTimeout(() => {
       handleSubmit(new Event('submit'), questionText)
     }, 300)
   }
 
-  // Handle form submit
   const handleSubmit = async (e, questionOverride = null) => {
     e.preventDefault()
-    
     const questionText = questionOverride || query.trim()
     if (!questionText || loading) return
 
     setShowEmpty(false)
     setError(null)
-    
-    // Add user message
-    const userMessage = { type: 'user', text: questionText }
-    setMessages(prev => [...prev, userMessage])
-    setQuery('')
 
-    // Add typing indicator
-    const typingMessage = { type: 'typing', id: 'typing' }
-    setMessages(prev => [...prev, typingMessage])
+    setMessages(prev => [...prev, { type: 'user', text: questionText }])
+    setQuery('')
+    setMessages(prev => [...prev, { type: 'typing', id: 'typing' }])
     setLoading(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: questionText,
-          user_id: 'web-user',
-          channel: 'web'
-        })
-      })
+      // Uses api.js which sends X-API-Key header automatically
+      const data = await queryBot({ query: questionText, userId: 'web-user' })
 
-      const data = await response.json()
-      
-      // Remove typing indicator
       setMessages(prev => prev.filter(m => m.id !== 'typing'))
 
-      // Add bot response
       const botMessage = {
         type: 'bot',
-        text: data.success ? data.answer : (data.fallback_message || 'Sorry, I could not find an answer.'),
+        text: data.success && data.answer
+          ? data.answer
+          : (data.fallback_message || 'Sorry, I could not find an answer.'),
         confidence: data.confidence_level,
-        relatedQuestions: data.related_questions || []
+        requiresHandoff: data.requires_human_handoff,
+        relatedQuestions: (data.related_questions || []).map(q =>
+          typeof q === 'string' ? q : q.question
+        ),
+        youtubeLinks: data.youtube_links || []
       }
       setMessages(prev => [...prev, botMessage])
 
-    } catch (error) {
-      // Remove typing indicator
+    } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== 'typing'))
-      
       setError('Failed to connect to the server. Please try again.')
-      console.error('Query error:', error)
+      console.error('Query error:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Scroll to bottom
   const scrollToBottom = () => {
     if (chatBodyRef.current) {
       chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight
@@ -177,7 +105,6 @@ function App() {
 
   return (
     <div className="app">
-      {/* Header */}
       <header className="header">
         <div className="header-container">
           <a href="https://jainamsoftware.com" className="logo">
@@ -193,15 +120,12 @@ function App() {
         </div>
       </header>
 
-      {/* Main Container */}
       <div className="container">
-        {/* Hero */}
         <div className="hero">
           <h1>How can we help you today?</h1>
           <p>Get instant answers to your questions with our AI-powered support assistant</p>
         </div>
 
-        {/* Chat Interface */}
         <div className="chat-container">
           <div className="chat-header">
             <h2>Support Assistant</h2>
@@ -209,7 +133,6 @@ function App() {
           </div>
 
           <div className="chat-body" ref={chatBodyRef}>
-            {/* Empty State */}
             {showEmpty && messages.length === 0 && (
               <div className="empty-state">
                 <div className="empty-state-icon">💬</div>
@@ -218,14 +141,13 @@ function App() {
               </div>
             )}
 
-            {/* Messages */}
             <div className="messages">
               {messages.map((message, index) => (
                 <div key={index} className={`message message-${message.type}`}>
                   {message.type === 'user' && (
                     <div className="message-bubble">{message.text}</div>
                   )}
-                  
+
                   {message.type === 'bot' && (
                     <>
                       <div className="bot-avatar">J</div>
@@ -238,17 +160,28 @@ function App() {
                             </span>
                           )}
                         </div>
-                        
-                        {message.relatedQuestions && message.relatedQuestions.length > 0 && (
+
+                        {/* YouTube links */}
+                        {message.youtubeLinks?.length > 0 && (
+                          <div className="related-section">
+                            <div className="related-title">🎥 Video Guides:</div>
+                            <div className="related-chips">
+                              {message.youtubeLinks.map((link, i) => (
+                                <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="chip">
+                                  Watch Video {i + 1}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Related questions */}
+                        {message.relatedQuestions?.length > 0 && (
                           <div className="related-section">
                             <div className="related-title">Related questions:</div>
                             <div className="related-chips">
                               {message.relatedQuestions.map((q, i) => (
-                                <span 
-                                  key={i} 
-                                  className="chip" 
-                                  onClick={() => handleQuestionClick(q)}
-                                >
+                                <span key={i} className="chip" onClick={() => handleQuestionClick(q)}>
                                   {q}
                                 </span>
                               ))}
@@ -258,7 +191,7 @@ function App() {
                       </div>
                     </>
                   )}
-                  
+
                   {message.type === 'typing' && (
                     <>
                       <div className="bot-avatar">J</div>
@@ -272,36 +205,28 @@ function App() {
                 </div>
               ))}
 
-              {/* Error Message */}
-              {error && (
-                <div className="error-message">{error}</div>
-              )}
+              {error && <div className="error-message">{error}</div>}
             </div>
           </div>
 
           <div className="chat-input">
             <form className="input-wrapper" onSubmit={handleSubmit}>
-              <input 
-                type="text" 
-                className="input-field" 
+              <input
+                type="text"
+                className="input-field"
                 placeholder="Type your question here..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={loading}
                 autoComplete="off"
               />
-              <button 
-                type="submit" 
-                className="send-btn" 
-                disabled={loading || !query.trim()}
-              >
+              <button type="submit" className="send-btn" disabled={loading || !query.trim()}>
                 {loading ? 'Sending...' : 'Send'}
               </button>
             </form>
           </div>
         </div>
 
-        {/* FAQ Section */}
         <div className="faq-section">
           <div className="faq-header">
             <h3>Popular Questions</h3>
@@ -309,11 +234,7 @@ function App() {
           </div>
           <div className="faq-grid">
             {frequentQuestions.map((q, index) => (
-              <div 
-                key={index} 
-                className="faq-card" 
-                onClick={() => handleQuestionClick(q.question)}
-              >
+              <div key={index} className="faq-card" onClick={() => handleQuestionClick(q.question)}>
                 <div className="faq-category">{q.category || 'General'}</div>
                 <div className="faq-question">{q.question}</div>
               </div>
@@ -322,7 +243,6 @@ function App() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="footer">
         <div className="footer-links">
           <a href="https://jainamsoftware.com/privacy" className="footer-link">Privacy Policy</a>
