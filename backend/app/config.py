@@ -8,6 +8,10 @@ from pydantic_settings import BaseSettings
 from typing import List, Optional
 from pathlib import Path
 
+# Resolve .env path relative to THIS file (backend/app/config.py)
+# Goes up two levels: app/ -> backend/ -> finds .env
+_ENV_FILE = Path(__file__).parent.parent / ".env"
+
 
 class Settings(BaseSettings):
     """
@@ -46,7 +50,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_PERIOD: int = 60
 
-    # CORS Origins (fallback list - also extended dynamically via ALLOWED_ORIGINS env var in main.py)
+    # CORS Origins (fallback list)
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -59,16 +63,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
 
-    # --- HR Integration ---
-    # API key shared with HR for authenticating /api/v1/chat requests
+    # HR Integration
     HR_API_KEY: Optional[str] = None
-
-    # Extra CORS origins for production (comma-separated in .env)
-    # Example: ALLOWED_ORIGINS=https://www.jainamsoftware.com
     ALLOWED_ORIGINS: Optional[str] = None
 
-    # --- External AI APIs ---
-    # Groq API key (used for any LLM calls, if applicable)
+    # External AI APIs
     GROQ_API_KEY: Optional[str] = None
 
     # Logging
@@ -89,10 +88,9 @@ class Settings(BaseSettings):
     MIN_QUERY_LENGTH: int = 2
 
     class Config:
-        env_file = ".env"
+        env_file = str(_ENV_FILE)       # absolute path - works from any directory
         env_file_encoding = "utf-8"
         case_sensitive = True
-        # Allow extra env vars in .env without crashing
         extra = "ignore"
 
 
