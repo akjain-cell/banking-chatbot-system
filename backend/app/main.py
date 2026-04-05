@@ -104,9 +104,6 @@ app = FastAPI(
 
 
 # MIDDLEWARE
-# CORS - includes localhost for dev + company domain for HR integration
-# Set ALLOWED_ORIGINS env var to add your company domain, e.g.:
-# ALLOWED_ORIGINS=https://company-website.com
 _extra_origins = os.getenv("ALLOWED_ORIGINS", "")
 _extra_list = [o.strip() for o in _extra_origins.split(",") if o.strip()]
 
@@ -128,18 +125,14 @@ app.add_middleware(
 )
 
 
-# Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log all requests"""
     logger.info(f"{request.method} {request.url.path}")
     response = await call_next(request)
     return response
 
-# ERROR HANDLERS
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Handle validation errors"""
     return JSONResponse(
         status_code=422,
         content={
@@ -153,7 +146,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle general exceptions"""
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
@@ -166,11 +158,8 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-# HEALTH CHECK ENDPOINTS (public - no auth needed)
-
 @app.get("/health")
 async def health_check():
-    """System health status"""
     try:
         index_stats = vector_store.get_index_stats()
         return {
@@ -196,20 +185,6 @@ async def health_check():
 
 @app.post("/api/v1/chat", response_model=ChatResponseSchema)
 async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
-    """
-    Main chat endpoint - retrieves FAQ answers.
-    Protected by API key (X-API-Key header).
-
-    Flow:
-    1. Validate API key (auth_service)
-    2. Rate limiting check
-    3. Mask PII in query
-    4. Generate embedding
-    5. Search FAISS index
-    6. Fetch FAQ data from database
-    7. Rank results by confidence
-    8. Return best answer with related questions
-    """
     import time
     start_time = time.time()
     
@@ -259,7 +234,7 @@ async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
                 response_time_ms=(time.time() - start_time) * 1000
             )
         
-        # STEP 5: FETCH FAQ DATA FROM DATABASE
+        # STEP 5: FETCH FAQ DATA
         faq_data = []
         for faq_id in faq_ids:
             if faq_id in FAQ_DATABASE:
@@ -268,12 +243,12 @@ async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
         logger.info(f"Retrieved {len(faq_data)} FAQs from database")
         
         # STEP 6: RANKING
-        ranked_faqs, avg_confidence, confidence_level = ranking_service.rank_results(
+        ranked_faqs, top_score, confidence_level = ranking_service.rank_results(
             faq_data,
             similarities.tolist()
         )
         
-        logger.info(f"Ranked {len(ranked_faqs)} FAQs, avg confidence: {avg_confidence:.3f}")
+        logger.info(f"Ranked {len(ranked_faqs)} FAQs, top_score: {top_score:.3f}, level: {confidence_level}")
         
         # STEP 7: RESPONSE
         if ranked_faqs:
@@ -289,7 +264,10 @@ async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
                 faq['youtube_link'] for faq in ranked_faqs
                 if faq.get('youtube_link')
             ]
-            
+
+            # FIX: requires_human_handoff based on confidence_level, NOT avg_confidence
+            requires_handoff = confidence_level == "low"
+
             response = ChatResponseSchema(
                 success=True,
                 query=request.query,
@@ -299,8 +277,8 @@ async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
                 confidence_score=best_faq['final_score'],
                 related_questions=related,
                 youtube_links=youtube_links,
-                requires_human_handoff=avg_confidence < 0.6,
-                fallback_message=get_fallback_message(confidence_level) if avg_confidence < 0.6 else None,
+                requires_human_handoff=requires_handoff,
+                fallback_message=get_fallback_message(confidence_level) if requires_handoff else None,
                 response_time_ms=(time.time() - start_time) * 1000
             )
         else:
@@ -332,11 +310,8 @@ async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
         )
 
 
-# Explicit OPTIONS handler for CORS preflight
-
 @app.options("/api/v1/frequent-questions")
 async def options_frequent_questions():
-    """Handle CORS preflight for frequent questions endpoint"""
     return Response(
         status_code=200,
         headers={
@@ -348,7 +323,6 @@ async def options_frequent_questions():
 
 @app.options("/api/v1/chat")
 async def options_chat():
-    """Handle CORS preflight for chat endpoint"""
     return Response(
         status_code=200,
         headers={
@@ -359,19 +333,11 @@ async def options_chat():
     )
 
 
-# FREQUENT QUESTIONS ENDPOINT (public - no auth needed)
-
 @app.get("/api/v1/frequent-questions")
 async def get_frequent_questions(limit: int = 10):
-    """
-    Get frequent/popular questions to display on homepage.
-    Public endpoint - no API key required.
-    Returns top N questions from different categories.
-    """
     try:
         logger.info(f"Frequent questions requested (limit={limit})")
         
-        # Get diverse questions from different categories
         from collections import defaultdict
         category_questions = defaultdict(list)
         
@@ -382,12 +348,10 @@ async def get_frequent_questions(limit: int = 10):
                 'category': faq['category']
             })
         
-        # Select 2 questions from each category
         frequent_questions = []
         for category, questions in category_questions.items():
             frequent_questions.extend(questions[:2])
         
-        # Limit to requested number
         frequent_questions = frequent_questions[:limit]
         
         logger.info(f"Returning {len(frequent_questions)} frequent questions")
@@ -408,31 +372,19 @@ async def get_frequent_questions(limit: int = 10):
         }
 
 
-# SUGGESTION ENDPOINT (public - no auth needed)
-
 @app.get("/api/v1/suggestions", response_model=SuggestionResponseSchema)
 async def get_suggestions(query: str = "", limit: int = 5):
-    """
-    Autocomplete suggestions for search.
-    Public endpoint - no API key required.
-    Returns suggested questions based on partial query match.
-    """
     try:
         if not query or len(query) < 2:
-            # Return popular questions if no query
             popular = [faq['question'] for faq in list(FAQ_DATABASE.values())[:limit]]
             return SuggestionResponseSchema(
                 suggestions=popular,
                 count=len(popular)
             )
         
-        # Generate embedding for partial query
         query_embedding = embedding_service.embed_text(query)
-        
-        # Search FAISS
         similarities, faq_ids = vector_store.search(query_embedding, k=limit)
         
-        # Get questions
         suggestions = []
         for faq_id in faq_ids:
             if faq_id in FAQ_DATABASE:
@@ -448,11 +400,8 @@ async def get_suggestions(query: str = "", limit: int = 5):
         return SuggestionResponseSchema(suggestions=[], count=0)
 
 
-# ROOT ENDPOINT
-
 @app.get("/")
 async def root():
-    """API root with documentation links"""
     return {
         "name": settings.API_TITLE,
         "version": settings.API_VERSION,
@@ -465,8 +414,6 @@ async def root():
         }
     }
 
-
-# RUN SERVER
 
 if __name__ == "__main__":
     import uvicorn
