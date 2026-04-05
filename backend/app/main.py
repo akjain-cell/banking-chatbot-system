@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -6,6 +6,7 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 
 from app.config import settings
@@ -18,6 +19,7 @@ from app.services.embedding_service import embedding_service
 from app.services.vector_search_service import vector_store
 from app.services.ranking_service import ranking_service, determine_confidence_level, get_fallback_message
 from app.services.security_service import pii_masking_service, rate_limiter
+from app.services.auth_service import verify_api_key
 from app.ml.index_builder import build_faiss_index_from_json
 
 # LOGGING SETUP
@@ -29,9 +31,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-#GLOBAL FAQ CACHE- Load FAQ data on startup
+#GLOBAL FAQ CACHE - Load FAQ data on startup
 
-FAQ_DATABASE = {}  #Will be loaded from JSON
+FAQ_DATABASE = {}  # Will be loaded from JSON
 
 def load_faq_database():
     """Load FAQ database from JSON file into memory"""
@@ -45,53 +47,53 @@ def load_faq_database():
         for faq in data['faqs']:
             FAQ_DATABASE[faq['id']] = faq
         
-        logger.info(f"✓ Loaded {len(FAQ_DATABASE)} FAQs into memory")
+        logger.info(f"\u2713 Loaded {len(FAQ_DATABASE)} FAQs into memory")
         return True
     except Exception as e:
         logger.error(f"Failed to load FAQ database: {str(e)}")
         return False
 
 
-#LIFESPAN EVENTS
+# LIFESPAN EVENTS
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events"""
-    #STARTUP
+    # STARTUP
     logger.info("=" * 80)
     logger.info("BANKING CHATBOT SYSTEM STARTING UP")
     logger.info("=" * 80)
     
     try:
-        #Load FAQ database first
+        # Load FAQ database first
         logger.info("Loading FAQ database...")
         load_faq_database()
         
-        #Load or createFAISS index
+        # Load or create FAISS index
         logger.info("Loading FAISS index...")
         if not vector_store.load_index():
             logger.info("Index not found, building from sample FAQs...")
             build_faiss_index_from_json()
         
         logger.info(f"Index stats: {vector_store.get_index_stats()}")
-        logger.info("✓ System ready for queries")
+        logger.info("\u2713 System ready for queries")
         
     except Exception as e:
         logger.error(f"Startup error: {str(e)}", exc_info=True)
         raise
     
-    yield  #Server runs here
+    yield  # Server runs here
     
-    #SHUTDOWN
+    # SHUTDOWN
     logger.info("Shutting down...")
     try:
         vector_store.save_index()
-        logger.info("✓ Index saved")
+        logger.info("\u2713 Index saved")
     except Exception as e:
         logger.error(f"Shutdown error: {str(e)}")
 
 
-#FASTAPI APP
+# FASTAPI APP
 
 app = FastAPI(
     title=settings.API_TITLE,
@@ -102,15 +104,22 @@ app = FastAPI(
 
 
 # MIDDLEWARE
-# CORS
+# CORS - includes localhost for dev + company domain for HR integration
+# Set ALLOWED_ORIGINS env var to add your company domain, e.g.:
+# ALLOWED_ORIGINS=https://company-website.com
+_extra_origins = os.getenv("ALLOWED_ORIGINS", "")
+_extra_list = [o.strip() for o in _extra_origins.split(",") if o.strip()]
+
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+] + _extra_list
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -157,7 +166,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
-#HEALTH CHECK ENDPOINTS
+# HEALTH CHECK ENDPOINTS (public - no auth needed)
 
 @app.get("/health")
 async def health_check():
@@ -183,29 +192,29 @@ async def health_check():
         }
 
 
-#MAIN CHAT ENDPOINT - FIXED VERSION
+# MAIN CHAT ENDPOINT - API KEY PROTECTED
 
 @app.post("/api/v1/chat", response_model=ChatResponseSchema)
-async def chat(request: ChatQueryRequest):
+async def chat(request: ChatQueryRequest, _: str = Depends(verify_api_key)):
     """
-    Main chat endpoint - retrieves FAQ answers
-    
-    FIXED: Now loads actual FAQ data from FAQ_DATABASE
-    
+    Main chat endpoint - retrieves FAQ answers.
+    Protected by API key (X-API-Key header).
+
     Flow:
-    1. Validate query and rate limit
-    2. Mask PII in query
-    3. Generate embedding
-    4. Search FAISS index
-    5. Fetch FAQ data from database
-    6. Rank results by confidence
-    7. Return best answer with related questions
+    1. Validate API key (auth_service)
+    2. Rate limiting check
+    3. Mask PII in query
+    4. Generate embedding
+    5. Search FAISS index
+    6. Fetch FAQ data from database
+    7. Rank results by confidence
+    8. Return best answer with related questions
     """
     import time
     start_time = time.time()
     
     try:
-        #STEP 1:RATE LIMITING 
+        # STEP 1: RATE LIMITING
         user_id = request.user_id or "anonymous"
         allowed, rate_info = rate_limiter.is_allowed(user_id)
         
@@ -222,16 +231,16 @@ async def chat(request: ChatQueryRequest):
                 response_time_ms=(time.time() - start_time) * 1000
             )
         
-        #TEP2:PII MASKING
+        # STEP 2: PII MASKING
         masked_query, pii_detected = pii_masking_service.mask_all_pii(request.query)
         if pii_detected:
             logger.warning(f"PII detected: {pii_detected}")
         
-        #STEP3: EMBEDDING GENERATION
+        # STEP 3: EMBEDDING GENERATION
         logger.info(f"Processing query: {request.query[:100]}...")
         query_embedding = embedding_service.embed_text(request.query)
         
-        #TEP 4:FAISS SEARCH
+        # STEP 4: FAISS SEARCH
         similarities, faq_ids = vector_store.search(
             query_embedding,
             k=settings.TOP_K_SIMILAR
@@ -250,7 +259,7 @@ async def chat(request: ChatQueryRequest):
                 response_time_ms=(time.time() - start_time) * 1000
             )
         
-        # STEP 5: FETCH FAQ DATA FROM DATABASE 
+        # STEP 5: FETCH FAQ DATA FROM DATABASE
         faq_data = []
         for faq_id in faq_ids:
             if faq_id in FAQ_DATABASE:
@@ -258,7 +267,7 @@ async def chat(request: ChatQueryRequest):
         
         logger.info(f"Retrieved {len(faq_data)} FAQs from database")
         
-        #STEP 6: RANKING
+        # STEP 6: RANKING
         ranked_faqs, avg_confidence, confidence_level = ranking_service.rank_results(
             faq_data,
             similarities.tolist()
@@ -266,7 +275,7 @@ async def chat(request: ChatQueryRequest):
         
         logger.info(f"Ranked {len(ranked_faqs)} FAQs, avg confidence: {avg_confidence:.3f}")
         
-        #STEP 7: RESPONSE
+        # STEP 7: RESPONSE
         if ranked_faqs:
             best_faq = ranked_faqs[0]
             
@@ -323,8 +332,7 @@ async def chat(request: ChatQueryRequest):
         )
 
 
-#ExplicitOPTIONS handler for CORS preflight
-
+# Explicit OPTIONS handler for CORS preflight
 
 @app.options("/api/v1/frequent-questions")
 async def options_frequent_questions():
@@ -349,18 +357,21 @@ async def options_chat():
             "Access-Control-Allow-Headers": "*",
         }
     )
-# FREQUENT QUESTIONS ENDPOINT - NEW! v4
+
+
+# FREQUENT QUESTIONS ENDPOINT (public - no auth needed)
 
 @app.get("/api/v1/frequent-questions")
 async def get_frequent_questions(limit: int = 10):
     """
-    Get frequent/popular questions to display on homepage
-    Returns top N questions from different categories
+    Get frequent/popular questions to display on homepage.
+    Public endpoint - no API key required.
+    Returns top N questions from different categories.
     """
     try:
-        logger.info(f"📋 Frequent questions requested (limit={limit})")
+        logger.info(f"Frequent questions requested (limit={limit})")
         
-        #Get diverse questions from different categories
+        # Get diverse questions from different categories
         from collections import defaultdict
         category_questions = defaultdict(list)
         
@@ -371,15 +382,15 @@ async def get_frequent_questions(limit: int = 10):
                 'category': faq['category']
             })
         
-        #Select 2questions from each category
+        # Select 2 questions from each category
         frequent_questions = []
         for category, questions in category_questions.items():
             frequent_questions.extend(questions[:2])
         
-        #Limit to requested number
+        # Limit to requested number
         frequent_questions = frequent_questions[:limit]
         
-        logger.info(f"✅ Returning {len(frequent_questions)} frequent questions")
+        logger.info(f"Returning {len(frequent_questions)} frequent questions")
         
         return {
             "success": True,
@@ -388,7 +399,7 @@ async def get_frequent_questions(limit: int = 10):
         }
     
     except Exception as e:
-        logger.error(f"❌ Frequent questions error: {str(e)}", exc_info=True)
+        logger.error(f"Frequent questions error: {str(e)}", exc_info=True)
         return {
             "success": False,
             "questions": [],
@@ -396,25 +407,26 @@ async def get_frequent_questions(limit: int = 10):
             "error": str(e)
         }
 
-#
-# SUGGESTION ENDPOINT
+
+# SUGGESTION ENDPOINT (public - no auth needed)
 
 @app.get("/api/v1/suggestions", response_model=SuggestionResponseSchema)
 async def get_suggestions(query: str = "", limit: int = 5):
     """
-    Autocomplete suggestions for search
-    Returns suggested questions based on partial query match
+    Autocomplete suggestions for search.
+    Public endpoint - no API key required.
+    Returns suggested questions based on partial query match.
     """
     try:
         if not query or len(query) < 2:
-            #Return popular questions if no query
+            # Return popular questions if no query
             popular = [faq['question'] for faq in list(FAQ_DATABASE.values())[:limit]]
             return SuggestionResponseSchema(
                 suggestions=popular,
                 count=len(popular)
             )
         
-        #Generate embedding for partial query
+        # Generate embedding for partial query
         query_embedding = embedding_service.embed_text(query)
         
         # Search FAISS
@@ -447,9 +459,9 @@ async def root():
         "docs": "/docs",
         "health": "/health",
         "endpoints": {
-            "chat": "POST /api/v1/chat",
-            "frequent_questions": "GET /api/v1/frequent-questions",
-            "suggestions": "GET /api/v1/suggestions"
+            "chat": "POST /api/v1/chat  [requires X-API-Key header]",
+            "frequent_questions": "GET /api/v1/frequent-questions  [public]",
+            "suggestions": "GET /api/v1/suggestions  [public]"
         }
     }
 
