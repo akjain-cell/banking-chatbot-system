@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 384
 
     # Search & Ranking Parameters
-    CONFIDENCE_THRESHOLD: float = 0.65
+    CONFIDENCE_THRESHOLD: float = 0.35
     MAX_RESULTS: int = 5
     MIN_RESULTS: int = 1
     TOP_K_SIMILAR: int = 10
