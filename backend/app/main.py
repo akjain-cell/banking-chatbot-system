@@ -8,7 +8,8 @@ from datetime import datetime
 import json
 import os
 from pathlib import Path
-
+from typing import List
+from pydantic import BaseModel
 from app.config import settings
 from app.models.schemas import (
     ChatQueryRequest, ChatResponseSchema, ChatErrorResponseSchema,
@@ -119,7 +120,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["*"],    
     expose_headers=["*"],
     max_age=3600,
 )
@@ -413,8 +414,89 @@ async def root():
             "suggestions": "GET /api/v1/suggestions  [public]"
         }
     }
+class VectorSearchRequest(BaseModel):
+    embedding: List[float]
+    top_k: int = 5
+    user_id: str = "web-client"
 
+@app.post("/api/v1/search-by-vector")
+async def search_by_vector(
+    request: VectorSearchRequest,
+    api_key: str = Depends(verify_api_key)
+):
+    import numpy as np, time
+    start = time.time()
 
+    try:
+        # Step 1: reshape browser embedding → numpy (same as /chat does)
+        query_vec = np.array(request.embedding, dtype=np.float32)
+
+        # Step 2: search FAISS — uses vector_store (same as /chat endpoint)
+        similarities, faq_ids = vector_store.search(query_vec, k=request.top_k)
+
+        elapsed = (time.time() - start) * 1000
+
+        if len(similarities) == 0:
+            return {
+                "success": False,
+                "answer": None,
+                "confidence_level": "low",
+                "requires_human_handoff": True,
+                "related_questions": [],
+                "youtube_links": [],
+                "response_time_ms": elapsed
+            }
+
+        # Step 3: fetch FAQ data from in-memory database (same as /chat)
+        faq_data = []
+        for faq_id in faq_ids:
+            if faq_id in FAQ_DATABASE:
+                faq_data.append(FAQ_DATABASE[faq_id])
+
+        # Step 4: rank results (same as /chat)
+        ranked_faqs, top_score, confidence_level = ranking_service.rank_results(
+            faq_data,
+            similarities.tolist()
+        )
+
+        logger.info(f"Vector search: top_score={top_score:.3f}, confidence={confidence_level}, time={elapsed:.1f}ms")
+
+        if not ranked_faqs:
+            return {
+                "success": False,
+                "answer": None,
+                "confidence_level": "low",
+                "requires_human_handoff": True,
+                "related_questions": [],
+                "youtube_links": [],
+                "response_time_ms": elapsed
+            }
+
+        best = ranked_faqs[0]
+        related = ranking_service.get_related_questions(
+            ranked_faqs,
+            exclude_faq_id=best['id'],
+            limit=5
+        )
+        youtube_links = [f['youtube_link'] for f in ranked_faqs if f.get('youtube_link')]
+
+        return {
+            "success": True,
+            "answer": best.get("answer"),
+            "faq_id": best.get("id"),
+            "confidence_score": float(best.get("final_score", top_score)),
+            "confidence_level": confidence_level,
+            "requires_human_handoff": confidence_level == "low",
+            "fallback_message": get_fallback_message(confidence_level) if confidence_level == "low" else None,
+            "related_questions": related,
+            "youtube_links": youtube_links,
+            "response_time_ms": elapsed
+        }
+
+    except Exception as e:
+        logger.error(f"search-by-vector error: {e}", exc_info=True)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

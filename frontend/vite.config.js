@@ -3,13 +3,27 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    port: 5173,
-    host: 'localhost',
-    strictPort: false,
+
+  // ✅ Tell Vite NOT to bundle onnxruntime-web — let it load its own wasm files
+  optimizeDeps: {
+    exclude: ['onnxruntime-web'],
   },
+
+  server: {
+    headers: {
+      // ✅ Required for SharedArrayBuffer (ONNX multi-thread mode)
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+    fs: {
+      // ✅ Allow Vite to serve files from node_modules
+      allow: ['..'],
+    },
+  },
+
   build: {
-    outDir: 'dist',
-    sourcemap: false,
-  }
+    rollupOptions: {
+      external: [],
+    },
+  },
 })

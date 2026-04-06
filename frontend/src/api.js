@@ -2,7 +2,7 @@
  * API.JS - Frontend API Client
  * Sends X-API-Key header on all /api/v1/chat requests
  */
-
+import { getEmbedding } from "./services/onnxEmbedder.js";
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -68,32 +68,25 @@ function getOrCreateSessionId() {
  */
 export async function queryBot({ query, userId }) {
   try {
-    const payload = {
-      query,
+    console.log("🧠 Generating embedding in browser...");
+    const embedding = await getEmbedding(query);
+    console.log(`✅ Embedding ready: ${embedding.length} dims`);
+
+    const res = await api.post("/api/v1/search-by-vector", {
+      embedding,
+      top_k: 5,
       user_id: userId || "web-client",
-      channel: "web"
-    };
+    });
 
-    console.log("❓ Querying:", payload);
-    const res = await api.post("/api/v1/chat", payload);
-    console.log("✅ Got answer:", res.data);
     return res.data;
-
   } catch (error) {
     console.error("❌ Query failed:", error.message);
-
-    // Return a safe error object instead of crashing the UI
     return {
       success: false,
-      query,
       answer: null,
+      fallback_message: "Something went wrong. Please try again.",
       confidence_level: "low",
-      confidence_score: 0,
       requires_human_handoff: true,
-      fallback_message:
-        error.response?.status === 403
-          ? "Authentication error. Please contact support."
-          : "Something went wrong. Please try again.",
       related_questions: [],
       youtube_links: [],
     };
