@@ -46,13 +46,31 @@ function App() {
   }
 
   const handleQuestionClick = async (questionText) => {
-    setQuery(questionText)
-    if (chatBodyRef.current) {
-      chatBodyRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (!questionText || loading) return
+    setShowEmpty(false)
+    setError(null)
+    setMessages(prev => [...prev, { type: 'user', text: questionText }])
+    setQuery('')
+    setMessages(prev => [...prev, { type: 'typing', id: 'typing' }])
+    setLoading(true)
+    try {
+      const data = await queryBot({ query: questionText, userId: 'web-user' })
+      setMessages(prev => prev.filter(m => m.id !== 'typing'))
+      const botMessage = {
+        type: 'bot',
+        text: data.success && data.answer ? data.answer : (data.fallback_message || 'Sorry, I could not find an answer.'),
+        confidence: data.confidence_level,
+        requiresHandoff: data.requires_human_handoff,
+        relatedQuestions: (data.related_questions || []).map(q => typeof q === 'string' ? q : q.question),
+        youtubeLinks: data.youtube_links || []
+      }
+      setMessages(prev => [...prev, botMessage])
+    } catch (err) {
+      setMessages(prev => prev.filter(m => m.id !== 'typing'))
+      setError('Failed to connect to the server. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setTimeout(() => {
-      handleSubmit(new Event('submit'), questionText)
-    }, 300)
   }
 
   const handleSubmit = async (e, questionOverride = null) => {
