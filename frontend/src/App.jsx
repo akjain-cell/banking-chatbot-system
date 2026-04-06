@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
-import { queryBot, getFrequentQuestions } from './api.js'
+import { queryBot, getFrequentQuestions, warmupServer } from './api.js'
 
 function App() {
   const [query, setQuery] = useState('')
@@ -9,10 +9,17 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showEmpty, setShowEmpty] = useState(true)
+  const [serverReady, setServerReady] = useState(false) // tracks warm-up state
 
   const chatBodyRef = useRef(null)
 
-  useEffect(() => { loadFrequentQuestions() }, [])
+  useEffect(() => {
+    // 1. Ping the server immediately so Render starts waking up
+    warmupServer().then(() => setServerReady(true))
+    // 2. Load frequent questions
+    loadFrequentQuestions()
+  }, [])
+
   useEffect(() => { scrollToBottom() }, [messages])
 
   const loadFrequentQuestions = async () => {
@@ -87,7 +94,6 @@ function App() {
     setLoading(true)
 
     try {
-      // Uses api.js which sends X-API-Key header automatically
       const data = await queryBot({ query: questionText, userId: 'web-user' })
 
       setMessages(prev => prev.filter(m => m.id !== 'typing'))
@@ -137,6 +143,20 @@ function App() {
           </nav>
         </div>
       </header>
+
+      {/* Cold-start banner — shown while server is still waking up */}
+      {!serverReady && (
+        <div style={{
+          background: '#fffbeb',
+          borderBottom: '1px solid #fde68a',
+          padding: '8px 16px',
+          textAlign: 'center',
+          fontSize: '0.875rem',
+          color: '#92400e'
+        }}>
+          ⏳ Server is starting up — this takes about 30–60 seconds on first visit. Please wait…
+        </div>
+      )}
 
       <div className="container">
         <div className="hero">
@@ -232,7 +252,7 @@ function App() {
               <input
                 type="text"
                 className="input-field"
-                placeholder="Type your question here..."
+                placeholder={serverReady ? 'Type your question here...' : 'Server starting up, please wait…'}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={loading}
